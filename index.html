@@ -228,8 +228,8 @@ tbody tr:hover td{background:#f9fbfb}
 .gc-f small{display:block;font-size:10.5px;font-weight:700;color:#98a2b3;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px}
 .gc-f>span{font-size:13px;font-weight:600;word-break:break-word}
 .gc-vida{display:flex;align-items:center;gap:6px}
-.gc-bar{flex:1;height:6px;background:#eef4f4;border-radius:99px;overflow:hidden;min-width:30px}
-.gc-bar i{display:block;height:100%;background:var(--brand);border-radius:99px}
+.gc-bar{flex:1;height:6px;background:#e4e7ec;border-radius:99px;overflow:hidden;min-width:30px;display:flex;justify-content:flex-end}
+.gc-bar i{display:block;height:100%;background:var(--brand);border-radius:99px;margin-left:auto}
 .gc-txt{padding:0 14px 12px;display:flex;flex-direction:column;gap:8px}
 .gc-txt div{background:#f7fafa;border:1px solid #eef2f4;border-radius:10px;padding:8px 10px}
 .gc-txt small{display:flex;align-items:center;gap:5px;font-size:10.5px;font-weight:700;color:var(--brand2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
@@ -419,7 +419,7 @@ tbody tr:hover td{background:#f9fbfb}
    <button class="btn primary" onclick="openGastoModal()"><svg class="i"><use href="#i-plus"/></svg>Novo</button>
   </div>
  </div>
- <div class="table-wrap"><div class="table-scroll"><table><thead><tr><th>ID</th><th>Data</th><th>Mina</th><th>Modelo</th><th>Ativo</th><th>Componente</th><th>Tipo</th><th>Vida %</th><th>Valor Reforma</th><th>Perda</th><th>Situação</th><th>FP&amp;A</th><th>Técnica</th><th>Responsável</th><th>Ações</th></tr></thead><tbody id="gastosRows"></tbody></table></div></div>
+ <div class="table-wrap"><div class="table-scroll"><table><thead><tr><th>ID</th><th>Data</th><th>Mina</th><th>Modelo</th><th>Ativo</th><th>Componente</th><th>Tipo</th><th>Vida %</th><th>Valor Reforma</th><th>Gasto Evitado</th><th>Situação</th><th>FP&amp;A</th><th>Técnica</th><th>Responsável</th><th>Ações</th></tr></thead><tbody id="gastosRows"></tbody></table></div></div>
  <div id="gastosCards" class="gastos-cards"></div>
 </div>
 
@@ -451,14 +451,14 @@ tbody tr:hover td{background:#f9fbfb}
  <div class="modal-body"><div class="grid">
   <div class="field"><label>Ano</label><select id="df_ano"><option value="">Todos</option></select></div>
   <div class="field"><label>Lançado no FP&amp;A?</label><select id="df_lancado_fpa"><option value="">Todos</option><option value="true">Sim</option><option value="false">Não</option></select></div>
-  <div class="field"><label>Perda mínima</label><input type="number" step="0.01" id="df_perda_min"></div>
+  <div class="field"><label>Gasto evitado mínimo</label><input type="number" step="0.01" id="df_perda_min"></div>
   <div class="field"><label>Minas</label><select id="df_minas" multiple data-placeholder="Todas"></select></div>
   <div class="field"><label>Modelos</label><select id="df_modelos" multiple data-placeholder="Todos"></select></div>
   <div class="field"><label>Componentes</label><select id="df_componentes" multiple data-placeholder="Todos"></select></div>
   <div class="field"><label>Situações</label><select id="df_situacoes" multiple data-placeholder="Todas"></select></div>
   <div class="field"><label>Técnicas</label><select id="df_tecnicas" multiple data-placeholder="Todas"></select></div>
   <div class="field"><label>Responsáveis</label><select id="df_responsaveis" multiple data-placeholder="Todos"></select></div>
-  <div class="field"><label>Perda máxima</label><input type="number" step="0.01" id="df_perda_max"></div>
+  <div class="field"><label>Gasto evitado máximo</label><input type="number" step="0.01" id="df_perda_max"></div>
   <div class="field full"><label>Texto livre</label><input id="df_texto" placeholder="Modo de falha, ação, OM, ativo..."></div>
  </div></div>
  <div class="modal-foot"><button class="btn" onclick="limparFiltrosDashboard()"><svg class="i"><use href="#i-eraser"/></svg>Limpar</button><button class="btn primary" onclick="aplicarFiltrosDashboard()"><svg class="i"><use href="#i-check"/></svg>Aplicar</button></div>
@@ -471,14 +471,14 @@ tbody tr:hover td{background:#f9fbfb}
   <div class="field full"><label>Período (Data)</label><div class="period"><div class="period-in"><svg class="i"><use href="#i-calendar"/></svg><span>De</span><input type="date" id="f_data_ini"></div><span class="period-sep">até</span><div class="period-in"><svg class="i"><use href="#i-calendar"/></svg><span>Até</span><input type="date" id="f_data_fim"></div><div class="period-quick"><button type="button" onclick="setPeriodo('mes')">Este mês</button><button type="button" onclick="setPeriodo('30')">Últimos 30 dias</button><button type="button" onclick="setPeriodo('90')">Últimos 90 dias</button><button type="button" onclick="setPeriodo('ano')">Este ano</button><button type="button" onclick="setPeriodo('')">Limpar período</button></div></div></div>
   <div class="field"><label>Ano</label><select id="f_ano"><option value="">Todos</option></select></div>
   <div class="field"><label>Lançado no FP&amp;A?</label><select id="f_lancado_fpa"><option value="">Todos</option><option value="true">Sim</option><option value="false">Não</option></select></div>
-  <div class="field"><label>Perda mínima</label><input type="number" step="0.01" id="f_perda_min"></div>
+  <div class="field"><label>Gasto evitado mínimo</label><input type="number" step="0.01" id="f_perda_min"></div>
   <div class="field"><label>Mina</label><select id="f_mina" multiple data-placeholder="Todas"></select></div>
   <div class="field"><label>Modelo</label><select id="f_modelo" multiple data-placeholder="Todos"></select></div>
   <div class="field"><label>Componente</label><select id="f_componente" multiple data-placeholder="Todos"></select></div>
   <div class="field"><label>Situação</label><select id="f_situacao" multiple data-placeholder="Todas"></select></div>
   <div class="field"><label>Técnica</label><select id="f_tecnica" multiple data-placeholder="Todas"></select></div>
   <div class="field"><label>Responsável</label><select id="f_responsavel" multiple data-placeholder="Todos"></select></div>
-  <div class="field"><label>Perda máxima</label><input type="number" step="0.01" id="f_perda_max"></div>
+  <div class="field"><label>Gasto evitado máximo</label><input type="number" step="0.01" id="f_perda_max"></div>
   <div class="field full"><label>Texto livre</label><input id="f_texto" placeholder="Modo de falha, ação, OM, ativo, responsável..."></div>
  </div></div>
  <div class="modal-foot"><button class="btn" onclick="limparFiltros()"><svg class="i"><use href="#i-eraser"/></svg>Limpar</button><button class="btn primary" onclick="aplicarFiltros()"><svg class="i"><use href="#i-check"/></svg>Aplicar</button></div>
@@ -508,7 +508,7 @@ tbody tr:hover td{background:#f9fbfb}
   <div class="field"><label>Custo peças e serviços</label><input type="number" step="0.01" id="custo_pecas_servicos"></div>
   <div class="field"><label>Valor de Reforma</label><input type="number" step="0.01" id="valor_reforma" oninput="calcular()"><input type="hidden" id="valor_reforma_id"></div>
   <div class="field"><label>&nbsp;</label><button type="button" class="btn" onclick="openBuscaValorModal()"><svg class="i"><use href="#i-search"/></svg>Buscar Valor</button></div>
-  <div class="field"><label>Perda calculada</label><input type="number" step="0.01" id="perda" readonly></div>
+  <div class="field"><label>Gasto evitado calculado</label><input type="number" step="0.01" id="perda" readonly></div>
   <div class="field"><label>Situação</label><select id="situacao_id"></select></div>
   <div class="field"><label>Registro ativo?</label><select id="ativo"><option value="true">Sim</option><option value="false">Não</option></select></div>
   <div class="section-title">Descrição técnica</div>
@@ -733,14 +733,14 @@ function gastoCard(g){
  <div class="gc-grid">
   ${f('Ativo',esc(g.ativo_pai))}
   ${f('Mina',esc(g.mina))}
-  ${f('Vida %',v==null?'':`<span class="gc-vida">${pct(g.percentual_vida_residual)}<span class="gc-bar"><i style="width:${v*100}%"></i></span></span>`)}
+  ${f('Vida %',v==null?'':`<span class="gc-vida">${pct(g.percentual_vida_residual)}<span class="gc-bar" title="Vida residual: ${pct(v)} · Consumida: ${pct(1-v)}"><i style="width:${v*100}%"></i></span></span>`)}
   <div class="gc-f" style="grid-column:1/-1"><small>Responsável</small><span style="display:inline-flex;align-items:center;gap:5px">${ic('user').replace('class="i"','class="i" style="width:14px;height:14px;color:#98a2b3"')}${esc(g.responsavel||'-')}</span></div>
  </div>
  <div class="gc-txt">
   <div><small>${ic('alert')}Modo de Falha</small><p>${esc(g.modo_falha||'-')}</p></div>
   <div><small>${ic('wrench')}Ação</small><p>${esc(g.acao||'-')}</p></div>
  </div>
- <div class="gc-money"><div><small>Valor Reforma</small><b>${money(g.valor_reforma)}</b></div><div class="loss"><small>Perda</small><b>${money(g.perda)}</b></div></div>
+ <div class="gc-money"><div><small>Valor Reforma</small><b>${money(g.valor_reforma)}</b></div><div class="loss"><small>Gasto Evitado</small><b>${money(g.perda)}</b></div></div>
  <div class="gc-foot"><span class="fpa">FP&amp;A ${badgeFpa(g.lancado_fpa)}</span><div class="actions"><button class="btn icon" title="Editar" onclick="editGasto(${g.id})">${ic('edit')}</button>${fpaBtn(g)}</div></div>
 </div>`}
 function setGastosCols(n){n=Math.min(4,Math.max(1,parseInt(n)||3));try{localStorage.setItem('cge_gastos_cols',n)}catch(e){}document.getElementById('gastosCards').style.setProperty('--gcols',n);document.querySelectorAll('#colsToggle button').forEach(b=>b.classList.toggle('active',Number(b.dataset.cols)===n))}
