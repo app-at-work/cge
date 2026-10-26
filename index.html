@@ -79,6 +79,28 @@ header{position:sticky;top:0;z-index:10;background:rgba(243,247,247,.9);backdrop
 .btn.icon svg.i{width:16px;height:16px}
 .btn.icon.on{color:var(--ok);border-color:#abefc6;background:#ecfdf3}
 .btn.danger{color:var(--danger);border-color:#fecdca}
+.btn.danger:hover{background:#fef3f2;border-color:#fda29b}
+.btn.icon.del{color:#98a2b3}
+.btn.icon.del:hover{color:var(--danger);border-color:#fecdca;background:#fef3f2}
+.btn.solid-danger{background:var(--danger);border-color:var(--danger);color:#fff;box-shadow:0 4px 12px rgba(180,35,24,.22)}
+.btn.solid-danger:hover{background:#912018;border-color:#912018}
+.btn[disabled]{opacity:.65;cursor:not-allowed}
+/* ===== Modal de confirmação ===== */
+.confirm-card{width:min(440px,100%)!important;height:auto!important;max-height:92vh!important;border-radius:20px!important;margin:auto}
+.confirm-body{padding:26px 24px 8px;text-align:center}
+.confirm-ic{width:60px;height:60px;border-radius:50%;margin:0 auto 14px;display:flex;align-items:center;justify-content:center;background:#fee4e2;color:var(--danger);box-shadow:0 0 0 8px #fef3f2}
+.confirm-ic svg.i{width:28px;height:28px}
+.confirm-body h3{margin:0 0 8px;font-size:18px}
+.confirm-body p{margin:0;color:var(--muted);font-size:14px;line-height:1.5}
+.confirm-det{margin:14px 0 0;background:#f7fafa;border:1px solid #eef2f4;border-radius:12px;padding:10px 12px;text-align:left;font-size:13px;display:grid;gap:4px}
+.confirm-det b{color:var(--text)}
+.confirm-det span{color:#475467}
+.confirm-warn{margin-top:12px;font-size:12px;color:var(--danger);font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px}
+.confirm-warn svg.i{width:14px;height:14px}
+.confirm-foot{padding:16px 24px 22px;display:flex;gap:10px}
+.confirm-foot .btn{flex:1}
+#confirmModal{z-index:200}
+@media(max-width:760px){#confirmModal{padding:16px;align-items:center}}
 .actions{display:flex;gap:6px}
 
 /* ===== Cards / KPIs ===== */
@@ -531,7 +553,7 @@ tbody tr:hover td{background:#f9fbfb}
   <div class="section-title">Anexos (até 2 imagens)</div>
   <div class="field full"><div class="anx-wrap" id="anxWrap"></div><span class="hint">JPG, PNG ou WEBP. As imagens anexadas saem no slide do registro ao exportar a apresentação.</span></div>
  </form></div>
- <div class="modal-foot"><button class="btn" onclick="closeModal('gastoModal')">Cancelar</button><button class="btn primary" onclick="saveGasto()"><svg class="i"><use href="#i-save"/></svg>Salvar</button></div>
+ <div class="modal-foot"><button type="button" class="btn danger" id="btnDelGastoModal" style="margin-right:auto;display:none" onclick="deleteGasto(Number(gasto_id.value))"><svg class="i"><use href="#i-trash"/></svg>Excluir</button><button class="btn" onclick="closeModal('gastoModal')">Cancelar</button><button class="btn primary" onclick="saveGasto()"><svg class="i"><use href="#i-save"/></svg>Salvar</button></div>
 </div></div>
 
 <!-- MODAL: Buscar Valor -->
@@ -557,6 +579,17 @@ tbody tr:hover td{background:#f9fbfb}
  <div class="modal-foot"><button class="btn" onclick="closeModal('adminModal')">Cancelar</button><button class="btn primary" onclick="saveAdmin()"><svg class="i"><use href="#i-save"/></svg>Salvar</button></div>
 </div></div>
 
+<!-- MODAL: Confirmação de exclusão -->
+<div id="confirmModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle"><div class="modal-card confirm-card">
+ <div class="confirm-body">
+  <div class="confirm-ic"><svg class="i"><use href="#i-trash"/></svg></div>
+  <h3 id="confirmTitle">Excluir registro?</h3>
+  <p id="confirmMsg"></p>
+  <div id="confirmDet" class="confirm-det"></div>
+  <div class="confirm-warn"><svg class="i"><use href="#i-alert"/></svg>Esta ação não poderá ser desfeita.</div>
+ </div>
+ <div class="confirm-foot"><button type="button" class="btn" id="confirmCancel">Cancelar</button><button type="button" class="btn solid-danger" id="confirmOk"><svg class="i"><use href="#i-trash"/></svg><span>Excluir</span></button></div>
+</div></div>
 <div id="toast" class="toast"></div>
 <script>
 const SUPABASE_URL='https://egsziutmtktjmreaduhv.supabase.co';
@@ -756,14 +789,14 @@ function gastoCard(g){
   <div><small>${ic('wrench')}Ação</small><p>${esc(g.acao||'-')}</p></div>
  </div>
  <div class="gc-money"><div><small>Valor Reforma</small><b>${money(g.valor_reforma)}</b></div><div class="loss"><small>Gasto Evitado</small><b>${money(g.perda)}</b></div></div>
- <div class="gc-foot"><span class="fpa">FP&amp;A ${badgeFpa(g.lancado_fpa)}</span><div class="actions"><button class="btn icon" title="Editar" onclick="editGasto(${g.id})">${ic('edit')}</button>${fpaBtn(g)}</div></div>
+ <div class="gc-foot"><span class="fpa">FP&amp;A ${badgeFpa(g.lancado_fpa)}</span><div class="actions"><button class="btn icon" title="Editar" onclick="editGasto(${g.id})">${ic('edit')}</button>${fpaBtn(g)}${delBtn(g)}</div></div>
 </div>`}
 function setGastosCols(n){n=Math.min(4,Math.max(1,parseInt(n)||3));try{localStorage.setItem('cge_gastos_cols',n)}catch(e){}document.getElementById('gastosCards').style.setProperty('--gcols',n);document.querySelectorAll('#colsToggle button').forEach(b=>b.classList.toggle('active',Number(b.dataset.cols)===n))}
 function setGastosMode(m){m=m==='cards'?'cards':'table';try{localStorage.setItem('cge_gastos_mode',m)}catch(e){}document.getElementById('gastos').classList.toggle('mode-cards',m==='cards');document.querySelectorAll('#viewToggle button').forEach(b=>b.classList.toggle('active',b.dataset.mode===m))}
-function renderGastos(){const arr=filteredGastos();gastosRows.innerHTML=arr.map(g=>`<tr><td>${g.id}</td><td>${g.data_ocorrencia||''}</td><td>${esc(g.mina)}</td><td>${esc(g.modelo)}</td><td>${esc(g.ativo_pai)}</td><td>${esc(g.componente)}</td><td>${esc(g.tipo_componente)}</td><td>${pct(g.percentual_vida_residual)}</td><td>${money(g.valor_reforma)}</td><td><b>${money(g.perda)}</b></td><td>${badge(g.situacao)}</td><td>${badgeFpa(g.lancado_fpa)}</td><td>${esc(g.tecnica_monitoramento)}</td><td>${esc(g.responsavel)}</td><td><div class="actions"><button class="btn icon" title="Editar" onclick="editGasto(${g.id})">${ic('edit')}</button>${fpaBtn(g)}</div></td></tr>`).join('')||'<tr><td colspan="15" class="empty">Sem registros</td></tr>';gastosCards.innerHTML=arr.map(gastoCard).join('')||'<div class="empty" style="grid-column:1/-1">Sem registros</div>'}
+function renderGastos(){const arr=filteredGastos();gastosRows.innerHTML=arr.map(g=>`<tr><td>${g.id}</td><td>${g.data_ocorrencia||''}</td><td>${esc(g.mina)}</td><td>${esc(g.modelo)}</td><td>${esc(g.ativo_pai)}</td><td>${esc(g.componente)}</td><td>${esc(g.tipo_componente)}</td><td>${pct(g.percentual_vida_residual)}</td><td>${money(g.valor_reforma)}</td><td><b>${money(g.perda)}</b></td><td>${badge(g.situacao)}</td><td>${badgeFpa(g.lancado_fpa)}</td><td>${esc(g.tecnica_monitoramento)}</td><td>${esc(g.responsavel)}</td><td><div class="actions"><button class="btn icon" title="Editar" onclick="editGasto(${g.id})">${ic('edit')}</button>${fpaBtn(g)}${delBtn(g)}</div></td></tr>`).join('')||'<tr><td colspan="15" class="empty">Sem registros</td></tr>';gastosCards.innerHTML=arr.map(gastoCard).join('')||'<div class="empty" style="grid-column:1/-1">Sem registros</div>'}
 async function toggleFpa(id,value){const{error}=await sb.from('cge_gastos_evitados').update({lancado_fpa:value}).eq('id',id);if(error){toast('Erro ao atualizar FP&A: '+error.message);return}toast(value?'Marcado como lançado no FP&A':'Desmarcado do FP&A');await loadGastos();await loadDashboardViaSql()}
-function openGastoModal(){gastoForm.reset();gasto_id.value='';gastoModalTitle.textContent='Novo Gasto Evitado';ativo.value='true';resetAnexos();refreshSelects();openModal('gastoModal')}
-async function editGasto(id){const{data,error}=await sb.from('cge_gastos_evitados').select('*').eq('id',id).single();if(error){toast('Erro ao abrir registro');return}openGastoModal();gastoModalTitle.textContent='Editar Gasto Evitado #'+id;Object.entries(data).forEach(([k,v])=>{let el=document.getElementById(k);if(el){if(el.type==='date'&&v)el.value=String(v).slice(0,10);else if(k==='ativo')el.value=String(boolVal(v));else el.value=v??''}});percentual_vida_residual_view.value=pct(data.percentual_vida_residual);resetAnexos([data.anexo1_url,data.anexo2_url]);refreshSelects()}
+function openGastoModal(){gastoForm.reset();gasto_id.value='';btnDelGastoModal.style.display='none';gastoModalTitle.textContent='Novo Gasto Evitado';ativo.value='true';resetAnexos();refreshSelects();openModal('gastoModal')}
+async function editGasto(id){const{data,error}=await sb.from('cge_gastos_evitados').select('*').eq('id',id).single();if(error){toast('Erro ao abrir registro');return}openGastoModal();gastoModalTitle.textContent='Editar Gasto Evitado #'+id;btnDelGastoModal.style.display='';Object.entries(data).forEach(([k,v])=>{let el=document.getElementById(k);if(el){if(el.type==='date'&&v)el.value=String(v).slice(0,10);else if(k==='ativo')el.value=String(boolVal(v));else el.value=v??''}});percentual_vida_residual_view.value=pct(data.percentual_vida_residual);resetAnexos([data.anexo1_url,data.anexo2_url]);refreshSelects()}
 function calcular(){let tipoId=tipo_componente_id.value,row=(lookups.cge_tipos_componente||[]).find(x=>String(x.id)===String(tipoId)),tipo=(row?.nome||'').toUpperCase(),h=Number(ht.value||0),vida=Number(vida_esperada_componente.value||0),valor=Number(valor_reforma.value||0),res=null,perc=null;if(tipo==='PERIFÉRICO'){perc=.7;res=0}else if(vida>0){res=Math.max(vida-h,0);perc=res/vida}vida_residual.value=res??'';percentual_vida_residual.value=perc??'';percentual_vida_residual_view.value=perc==null?'':pct(perc);perda.value=perc==null?'':(valor*perc).toFixed(2)}
 async function saveGasto(){calcular();const ids=['data_ocorrencia','mina_id','modelo_id','componente_id','tipo_componente_id','ativo_id','ht','custo_pecas_servicos','vida_esperada_componente','vida_residual','percentual_vida_residual','valor_reforma_id','valor_reforma','perda','situacao_id','modo_falha','acao','om_sap','tecnica_monitoramento_id','responsavel_id','observacao','ativo'];let obj={};ids.forEach(k=>{let v=document.getElementById(k).value;if(['mina_id','modelo_id','componente_id','tipo_componente_id','ativo_id','valor_reforma_id','situacao_id','tecnica_monitoramento_id','responsavel_id'].includes(k))obj[k]=v?Number(v):null;else if(['ht','custo_pecas_servicos','vida_esperada_componente','vida_residual','percentual_vida_residual','valor_reforma','perda'].includes(k))obj[k]=v===''?null:Number(v);else if(k==='ativo')obj[k]=v==='true';else obj[k]=v||null});let id=gasto_id.value,res=id?await sb.from('cge_gastos_evitados').update(obj).eq('id',id):await sb.from('cge_gastos_evitados').insert(obj).select('id').single();if(res.error){toast('Erro ao salvar: '+res.error.message);return}if(!id)id=res.data?.id;if(anexosAlterados()){const ok=await salvarAnexos(id);if(!ok)return}closeModal('gastoModal');toast('Registro salvo');await loadGastos();await loadDashboardViaSql();await loadAnosDashboard()}
 function openFilterModal(){fillGastosFilterSelects();f_ano.value=filtros.ano||'';f_data_ini.value=filtros.dataIni||'';f_data_fim.value=filtros.dataFim||'';f_lancado_fpa.value=filtros.lancadoFpa||'';f_perda_min.value=filtros.perdaMin||'';f_perda_max.value=filtros.perdaMax||'';f_texto.value=filtros.texto||'';Object.entries(GASTO_FILTER_SELECT).forEach(([k,id])=>setSelectedValues(id,filtros[k]||[]));refreshSelects();openModal('filterModal')}
@@ -1007,6 +1040,41 @@ async function exportarApresentacao(){
   toast(`Apresentação exportada: ${rows.length} slide(s)`);
  }catch(e){console.error(e);toast('Erro ao exportar apresentação: '+(e.message||e))}
  finally{btn.disabled=false;btn.innerHTML=old}
+}
+/* ===== Exclusão de Gasto Evitado (com confirmação em modal) ===== */
+function delBtn(g){return `<button class="btn icon del" title="Excluir" onclick="deleteGasto(${g.id})">${ic('trash')}</button>`}
+function confirmDialog({title='Confirmar exclusão',message='',details='',okText='Excluir'}={}){
+ return new Promise(resolve=>{
+  const m=document.getElementById('confirmModal'),ok=document.getElementById('confirmOk'),cancel=document.getElementById('confirmCancel');
+  confirmTitle.textContent=title;confirmMsg.innerHTML=message;confirmDet.innerHTML=details;confirmDet.style.display=details?'':'none';
+  ok.querySelector('span').textContent=okText;ok.disabled=false;
+  const prevFocus=document.activeElement;
+  const done=v=>{m.classList.remove('open');ok.removeEventListener('click',onOk);cancel.removeEventListener('click',onCancel);m.removeEventListener('mousedown',onBack);document.removeEventListener('keydown',onKey,true);if(prevFocus&&prevFocus.focus)try{prevFocus.focus()}catch(e){}resolve(v)};
+  const onOk=()=>done(true),onCancel=()=>done(false),onBack=e=>{if(e.target===m)done(false)};
+  const onKey=e=>{if(e.key==='Escape'){e.preventDefault();e.stopPropagation();done(false)}else if(e.key==='Tab'){const f=[cancel,ok];const i=f.indexOf(document.activeElement);e.preventDefault();f[(i+(e.shiftKey?-1:1)+f.length)%f.length].focus()}};
+  ok.addEventListener('click',onOk);cancel.addEventListener('click',onCancel);m.addEventListener('mousedown',onBack);document.addEventListener('keydown',onKey,true);
+  closeAllSelects();m.classList.add('open');setTimeout(()=>cancel.focus(),30);
+ });
+}
+async function deleteGasto(id){
+ if(!id)return;
+ const g=gastos.find(x=>x.id===id)||{};
+ const det=`<div><span>ID:</span> <b>#${id}</b> · <span>Data:</span> <b>${fmtDate(g.data_ocorrencia)}</b></div>`+
+  `<div><span>Componente:</span> <b>${esc(g.componente||'-')}</b></div>`+
+  `<div><span>Ativo / Mina:</span> <b>${esc(g.ativo_pai||'-')}</b> · <b>${esc(g.mina||'-')}</b></div>`+
+  `<div><span>Gasto evitado:</span> <b>${money(g.perda)}</b></div>`;
+ const ok=await confirmDialog({title:'Excluir gasto evitado?',message:'O registro abaixo e suas imagens anexadas serão removidos permanentemente.',details:det,okText:'Excluir'});
+ if(!ok)return;
+ // busca anexos para limpar o storage
+ let paths=[];
+ try{const{data}=await sb.from('cge_gastos_evitados').select('anexo1_url,anexo2_url').eq('id',id).single();if(data)paths=[data.anexo1_url,data.anexo2_url].map(anexoPath).filter(Boolean)}catch(e){}
+ const{error}=await sb.from('cge_gastos_evitados').delete().eq('id',id);
+ if(error){toast('Erro ao excluir: '+error.message);return}
+ if(paths.length)sb.storage.from(ANEXO_BUCKET).remove(paths).catch(()=>{});
+ if(document.getElementById('gastoModal').classList.contains('open')&&String(gasto_id.value)===String(id))closeModal('gastoModal');
+ gastos=gastos.filter(x=>x.id!==id);renderGastos();
+ toast(`Registro #${id} excluído`);
+ await loadGastos();await loadDashboardViaSql();await loadAnosDashboard();
 }
 function openAdminModal(){toast('Novo cadastro mantido em próxima etapa.')}
 async function toggleAdmin(id,ativo){const{error}=await sb.from(currentAdmin).update({ativo}).eq('id',id);if(error){toast('Erro ao atualizar status');return}await loadAdmin();toast('Status atualizado')}
