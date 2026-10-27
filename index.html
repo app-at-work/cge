@@ -814,33 +814,68 @@ function openValorModal(id=null){valorEditId=id;const fields=['frota_resumido','
 async function saveValorReforma(){const fields=['frota_resumido','componente_resumido','frota_completa','componente_completo','valor_medio_2026','material','servico','local_reforma','valor_2025','fabricante','tipo_equipamento','classe_agrupada','observacao','ativo'];let obj={};fields.forEach(f=>{let val=document.getElementById('vf_'+f).value;if(['valor_medio_2026','material','servico','valor_2025'].includes(f))obj[f]=val===''?null:Number(val);else if(f==='ativo')obj[f]=val==='true';else obj[f]=val||null});let res=valorEditId?await sb.from('cge_valores_reforma').update(obj).eq('id',valorEditId):await sb.from('cge_valores_reforma').insert(obj);if(res.error){toast('Erro: '+res.error.message);return}closeModal('valorModal');toast('Valor salvo');await loadValoresReforma()}
 
 /* ===== Cadastros (submenu) ===== */
-async function loadAdmin(){const cfg=lookupConfig[currentAdmin],name=cfg.name,isComp=currentAdmin==='cge_componentes';adminChip.innerHTML=ic(cfg.icon)+esc(cfg.label);const{data,error}=await sb.from(currentAdmin).select('*').order(name);if(error){toast('Erro ao carregar cadastro');return}lookups[currentAdmin]=data||[];
+async function loadAdmin(){const cfg=lookupConfig[currentAdmin],name=cfg.name,isComp=currentAdmin==='cge_componentes';adminChip.innerHTML=ic(cfg.icon)+esc(cfg.label);const{data,error}=await sb.from(currentAdmin).select('*').order(name);if(error){toast('Erro ao carregar cadastro: '+admErr(error));return}lookups[currentAdmin]=data||[];
 adminHead.innerHTML=`<tr><th>ID</th>${isComp?'<th>Imagem</th>':''}<th>Nome/Código</th><th>Status</th><th>Ações</th></tr>`;
-adminRows.innerHTML=(data||[]).map(x=>`<tr><td>${x.id}</td>${isComp?`<td>${x.imagem_url?`<img class="adm-thumb" src="${esc(x.imagem_url)}" alt="">`:`<span class="adm-noimg">${ic('image')}</span>`}</td>`:''}<td>${esc(x[name])}</td><td>${x.ativo?badge('Ativo'):badge('Inativo')}</td><td><div class="actions">${isComp?`<button class="btn icon" title="Editar" onclick="editComponente(${x.id})">${ic('edit')}</button>`:''}<button class="btn small" onclick="toggleAdmin(${x.id},${!x.ativo})">${ic('power')}${x.ativo?'Inativar':'Ativar'}</button></div></td></tr>`).join('')||`<tr><td colspan="${isComp?5:4}" class="empty">Sem cadastros</td></tr>`;
+adminRows.innerHTML=(data||[]).map(x=>`<tr><td>${x.id}</td>${isComp?`<td>${x.imagem_url?`<img class="adm-thumb" src="${esc(x.imagem_url)}" alt="">`:`<span class="adm-noimg">${ic('image')}</span>`}</td>`:''}<td>${esc(x[name])}</td><td>${x.ativo?badge('Ativo'):badge('Inativo')}</td><td><div class="actions"><button class="btn icon" title="Editar" onclick="openAdminForm(${x.id})">${ic('edit')}</button><button class="btn small" onclick="toggleAdmin(${x.id},${!x.ativo})">${ic('power')}${x.ativo?'Inativar':'Ativar'}</button></div></td></tr>`).join('')||`<tr><td colspan="${isComp?5:4}" class="empty">Sem cadastros</td></tr>`;
 fillDashboardSelects();if(isComp)renderGastos()}
 /* ===== Componentes: edição + imagem ===== */
 const COMP_BUCKET='cge-componentes';let compImgFile=null,compImgRemove=false;
 function compImg(g){const arr=lookups.cge_componentes||[];let c=g.componente_id!=null?arr.find(x=>String(x.id)===String(g.componente_id)):null;if(!c&&g.componente)c=arr.find(x=>x.nome===g.componente);return c?.imagem_url||null}
-function editComponente(id){const x=(lookups.cge_componentes||[]).find(c=>c.id===id);if(!x)return;adminEditId=id;compImgFile=null;compImgRemove=false;adminModalTitle.textContent='Editar Componente #'+id;
-adminForm.innerHTML=`<div class="field"><label>Nome</label><input id="ad_nome" value="${esc(x.nome)}"></div>
-<div class="field"><label>Status</label><select id="ad_ativo"><option value="true">Ativo</option><option value="false">Inativo</option></select></div>
-<div class="field full"><label>Imagem (usada nos cards de Gastos Evitados)</label><div class="img-up"><div class="img-prev" id="ad_prev"></div><div class="btns"><input type="file" id="ad_file" accept="image/*" style="display:none" onchange="onCompFile(this)"><button type="button" class="btn" onclick="ad_file.click()">${ic('upload')}Escolher imagem</button><button type="button" class="btn danger" onclick="removeCompImg()">${ic('trash')}Remover imagem</button><span class="hint">JPG, PNG ou WEBP. A imagem é redimensionada automaticamente.</span></div></div></div>`;
-document.getElementById('ad_ativo').value=String(x.ativo!==false);enhanceSelect(document.getElementById('ad_ativo'));setCompPrev(x.imagem_url);openModal('adminModal')}
+function editComponente(id){openAdminForm(id)}
+function admErr(e){const m=String((e&&e.message)||e||''),c=e&&e.code;
+ if(c==='42501'||/row-level security|permission denied/i.test(m))return 'sem permissão na tabela (RLS do Supabase). Libere INSERT/UPDATE para esta tabela.';
+ if(c==='23505'||/duplicate key/i.test(m))return 'já existe um cadastro com este valor.';
+ if(c==='23502'||/null value in column/i.test(m))return 'campo obrigatório não informado ('+m+').';
+ return m}
+function openAdminForm(id=null){
+ const cfg=lookupConfig[currentAdmin],isComp=currentAdmin==='cge_componentes',isCod=cfg.name==='codigo';
+ const x=id!=null?(lookups[currentAdmin]||[]).find(c=>String(c.id)===String(id)):null;
+ if(id!=null&&!x){toast('Registro não encontrado');return}
+ adminEditId=x?x.id:null;compImgFile=null;compImgRemove=false;
+ adminModalTitle.textContent=(x?'Editar cadastro · ':'Novo cadastro · ')+cfg.label+(x?' #'+x.id:'');
+ adminForm.innerHTML=`<div class="field full"><label>${isCod?'Código':'Nome'}</label><input id="ad_nome" autocomplete="off" value="${esc(x?x[cfg.name]:'')}"></div>
+<div class="field"><label>Status</label><select id="ad_ativo"><option value="true">Ativo</option><option value="false">Inativo</option></select></div>`+
+(isComp?`<div class="field full"><label>Imagem (usada nos cards de Gastos Evitados)</label><div class="img-up"><div class="img-prev" id="ad_prev"></div><div class="btns"><input type="file" id="ad_file" accept="image/*" style="display:none" onchange="onCompFile(this)"><button type="button" class="btn" onclick="ad_file.click()">${ic('upload')}Escolher imagem</button><button type="button" class="btn danger" onclick="removeCompImg()">${ic('trash')}Remover imagem</button><span class="hint">JPG, PNG ou WEBP. A imagem é redimensionada automaticamente.</span></div></div></div>`:'');
+ document.getElementById('ad_ativo').value=String(x?x.ativo!==false:true);enhanceSelect(document.getElementById('ad_ativo'));
+ if(isComp)setCompPrev(x?x.imagem_url:null);
+ openModal('adminModal');setTimeout(()=>{const i=document.getElementById('ad_nome');i&&i.focus()},60)}
 function setCompPrev(url){const el=document.getElementById('ad_prev');el.innerHTML=url?`<img src="${esc(url)}" alt="">`:`${ic('image')}<span>Sem imagem</span>`}
 function onCompFile(inp){const f=inp.files?.[0];if(!f)return;if(!f.type.startsWith('image/')){toast('Selecione um arquivo de imagem');return}compImgFile=f;compImgRemove=false;setCompPrev(URL.createObjectURL(f))}
 function removeCompImg(){compImgFile=null;compImgRemove=true;document.getElementById('ad_file').value='';setCompPrev(null)}
 function resizeImage(file,max=800){return new Promise((res,rej)=>{const img=new Image();img.onload=()=>{let w=img.width,h=img.height,r=Math.min(1,max/Math.max(w,h));const c=document.createElement('canvas');c.width=Math.round(w*r);c.height=Math.round(h*r);c.getContext('2d').drawImage(img,0,0,c.width,c.height);c.toBlob(b=>b?res(b):rej(new Error('Falha ao converter imagem')),'image/webp',.85)};img.onerror=()=>rej(new Error('Imagem inválida'));img.src=URL.createObjectURL(file)})}
 function storagePath(url){const k=`/${COMP_BUCKET}/`;const i=(url||'').indexOf(k);return i<0?null:decodeURIComponent(url.slice(i+k.length).split('?')[0])}
-async function saveAdmin(){if(currentAdmin!=='cge_componentes'||!adminEditId){closeModal('adminModal');return}
- const atual=(lookups.cge_componentes||[]).find(c=>c.id===adminEditId)||{};const nome=ad_nome.value.trim();if(!nome){toast('Informe o nome');return}
- const obj={nome,ativo:ad_ativo.value==='true'};let oldPath=storagePath(atual.imagem_url);
+let adminSaving=false;
+async function saveAdmin(){
+ if(adminSaving)return;
+ const cfg=lookupConfig[currentAdmin],field=cfg.name,isComp=currentAdmin==='cge_componentes',isNew=adminEditId==null;
+ const val=ad_nome.value.trim();
+ if(!val){toast('Informe '+(field==='codigo'?'o código':'o nome'));ad_nome.focus();return}
+ const dup=(lookups[currentAdmin]||[]).find(r=>String(r.id)!==String(adminEditId)&&norm(r[field]).trim()===norm(val));
+ if(dup){toast('Já existe um cadastro com este valor em '+cfg.label);return}
+ const obj={[field]:val,ativo:ad_ativo.value==='true'};
+ const btn=document.querySelector('#adminModal .modal-foot .btn.primary'),oldHtml=btn.innerHTML;
+ adminSaving=true;btn.disabled=true;btn.innerHTML=ic('clock')+'Salvando...';
+ let imgErr=null;
  try{
-  if(compImgFile){const blob=await resizeImage(compImgFile);const path=`componente_${adminEditId}_${Date.now()}.webp`;const up=await sb.storage.from(COMP_BUCKET).upload(path,blob,{contentType:'image/webp',upsert:true});if(up.error)throw up.error;obj.imagem_url=sb.storage.from(COMP_BUCKET).getPublicUrl(path).data.publicUrl}
-  else if(compImgRemove)obj.imagem_url=null;
- }catch(e){toast('Erro ao enviar imagem: '+(e.message||e));return}
- const{error}=await sb.from('cge_componentes').update(obj).eq('id',adminEditId);if(error){toast('Erro ao salvar: '+error.message);return}
- if(oldPath&&(compImgFile||compImgRemove))sb.storage.from(COMP_BUCKET).remove([oldPath]).catch(()=>{});
- closeModal('adminModal');toast('Componente salvo');await loadAdmin();fillSelects()}
+  const atual=isNew?{}:((lookups[currentAdmin]||[]).find(c=>String(c.id)===String(adminEditId))||{});
+  let id=adminEditId;
+  if(isNew){const r=await sb.from(currentAdmin).insert(obj).select('id').single();if(r.error)throw r.error;id=r.data.id}
+  else{const r=await sb.from(currentAdmin).update(obj).eq('id',id).select('id');if(r.error)throw r.error;if(!r.data||!r.data.length)throw new Error('Nenhuma linha foi alterada: sem permissão de UPDATE (RLS) na tabela '+currentAdmin+'.')}
+  if(isComp&&(compImgFile||compImgRemove)){
+   try{
+    const oldPath=storagePath(atual.imagem_url);let url=null;
+    if(compImgFile){const blob=await resizeImage(compImgFile);const path=`componente_${id}_${Date.now()}.webp`;const up=await sb.storage.from(COMP_BUCKET).upload(path,blob,{contentType:'image/webp',upsert:true});if(up.error)throw up.error;url=sb.storage.from(COMP_BUCKET).getPublicUrl(path).data.publicUrl}
+    const r=await sb.from('cge_componentes').update({imagem_url:url}).eq('id',id).select('id');if(r.error)throw r.error;
+    if(oldPath)sb.storage.from(COMP_BUCKET).remove([oldPath]).catch(()=>{});
+   }catch(e){imgErr=e}
+  }
+ }catch(e){console.error(e);toast('Erro ao salvar: '+admErr(e));adminSaving=false;btn.disabled=false;btn.innerHTML=oldHtml;return}
+ adminSaving=false;btn.disabled=false;btn.innerHTML=oldHtml;
+ closeModal('adminModal');
+ toast(imgErr?'Cadastro salvo, mas a imagem falhou: '+admErr(imgErr):(isNew?'Cadastro criado':'Cadastro atualizado'));
+ await loadAdmin();fillSelects();
+ if(!isNew){await loadGastos();await loadDashboardViaSql()}
+}
 
 /* ===== Anexos do Gasto Evitado (até 2 imagens) ===== */
 const ANEXO_BUCKET='cge-anexos';
@@ -1076,8 +1111,9 @@ async function deleteGasto(id){
  toast(`Registro #${id} excluído`);
  await loadGastos();await loadDashboardViaSql();await loadAnosDashboard();
 }
-function openAdminModal(){toast('Novo cadastro mantido em próxima etapa.')}
-async function toggleAdmin(id,ativo){const{error}=await sb.from(currentAdmin).update({ativo}).eq('id',id);if(error){toast('Erro ao atualizar status');return}await loadAdmin();toast('Status atualizado')}
+function openAdminModal(){openAdminForm(null)}
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target&&e.target.id==='ad_nome'){e.preventDefault();saveAdmin()}});
+async function toggleAdmin(id,ativo){const{data,error}=await sb.from(currentAdmin).update({ativo}).eq('id',id).select('id');if(error){toast('Erro ao atualizar status: '+admErr(error));return}if(!data||!data.length){toast('Nenhuma linha alterada: sem permissão de UPDATE (RLS) em '+currentAdmin+'.');return}await loadAdmin();toast('Status atualizado')}
 
 init();
 </script>
